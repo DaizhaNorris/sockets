@@ -99,9 +99,7 @@ def main():
     ProxyClientCommand(client_sock, SERVER_ADDRESS, SERVER_PORT,
                        cache)
 
-  #################################
-  #TODO: Close socket's connection
-  #################################
+  client_sock.close()
 
 
 main()

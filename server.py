@@ -36,7 +36,7 @@ from __future__ import print_function
 # A few commands are used by both the server and the proxy server. Those
 # functions are in library.py.
 import library
-
+import csv
 
 # The port that we accept connections on. (A.k.a. "listen" on.)
 LISTENING_PORT = 7777
@@ -57,9 +57,8 @@ def PutCommand(name, text, database):
     then the string describes the error.
   """
   # Store the value in the database.
-  ##########################################
-  #TODO: Implement PUT function
-  ##########################################
+  database.StoreValue(name, text)
+  return str(name + " = " + text)
 
 
 def GetCommand(name, database):
@@ -74,9 +73,7 @@ def GetCommand(name, database):
     A human readable string describing the result. If there is an error,
     then the string describes the error.
   """
-  ##########################################
-  #TODO: Implement GET function
-  ##########################################
+  return str(database.GetValue(name))
 
 
 def DumpCommand(database):
@@ -90,17 +87,22 @@ def DumpCommand(database):
     A human readable string describing the result. If there is an error,
     then the string describes the error.
   """
+  keys = database.Keys()
+  print(keys)
+  with open('dump.csv','w') as fp:
+    w = csv.DictWriter(fp, fieldnames=['key', 'value'])
+    w.writeheader()
+    for key in keys:
+      w.writerow({'key': key, 'value': database.db[key]}) 
 
-  ##########################################
-  #TODO: Implement DUMP function
-  ##########################################
-  
- 
+  return str(", ".join(database.Keys()))
 
 
 def SendText(sock, text):
   """Sends the result over the socket along with a newline."""
-  sock.send('%s\n' % text)
+  text += "\n"
+  text = text.encode()
+  sock.sendall(text)
 
 
 def main():
@@ -134,11 +136,7 @@ def main():
     SendText(client_sock, result)
 
     # We're done with the client, so clean up the socket.
-
-    #################################
-    #TODO: Close socket's connection
-    #################################
+    client_sock.close()
     
-
-
+    
 main()

@@ -16,7 +16,6 @@ from __future__ import print_function
 # descriptions because those can skip the archaic bits. (The API was released
 # more than 35 years ago!)
 import socket
-
 import time
 
 # Read this many bytes at a time of a command. Each socket holds a buffer of
@@ -35,37 +34,37 @@ def CreateServerSocket(port):
   Returns:
     An socket that implements TCP/IP.
   """
+  server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  server.bind(('127.0.0.1', port))
+  server.listen()
+  print("Server socket created and listening on port", port)
+  return server
 
-    #############################################
-    #TODO: Implement CreateServerSocket Function
-    #############################################
 
 def ConnectClientToServer(server_sock):
-    # Wait until a client connects and then get a socket that connects to the
-    # client.
-    
-
-    #############################################
-    #TODO: Implement CreateClientSocket Function
-    #############################################
-    
-
-
+  # Wait until a client connects and then get a socket that connects to the
+  # client.
+  client, address = server_sock.accept()
+  port = client.getsockname()[1]
+  return client, (address, port)
+  
 
 def CreateClientSocket(server_addr, port):
   """Creates a socket that connects to a port on a server."""
 
-    #############################################
-    #TODO: Implement CreateClientSocket Function
-    #############################################
-  
+  #############################################
+  #TODO: Implement CreateClientSocket Function
+  #############################################
+  pass
 
 def ReadCommand(sock):
   """Read a single command from a socket. The command must end in newline."""
-
-    #############################################
-    #TODO: Implement ReadCommand Function
-    #############################################
+  command = ""
+  newline = "\n"
+  while newline not in command:
+    command += str(sock.recv(COMMAND_BUFFER_SIZE), 'utf-8')
+  
+  return command.splitlines()[0]
   
 
 
@@ -104,11 +103,7 @@ class KeyValueStore(object):
   """
 
   def __init__(self):
-
-    ###########################################
-    #TODO: Implement __init__ Function
-    ###########################################
-    
+    self.db = {}
 
   def GetValue(self, key, max_age_in_sec=None):
     """Gets a cached value or `None`.
@@ -124,9 +119,7 @@ class KeyValueStore(object):
     """
     # Check if we've ever put something in the cache.
 
-    ###########################################
-    #TODO: Implement GetValue Function
-    ###########################################
+    return self.db[key] if key in self.db else "Invalid key."
 
 
 
@@ -137,20 +130,18 @@ class KeyValueStore(object):
       key: string. The name of the value to store.
       value: string. A value to store.
     """
-
-    ###########################################
-    #TODO: Implement StoreValue Function
-    ###########################################
-
+    self.db[key] = value
     
 
   def Keys(self):
     """Returns a list of all keys in the datastore."""
+    return list(self.db.keys())
 
-    ###########################################
-    #TODO: Implement Keys Function
-    ###########################################
-    
+  def Values(self):
+    """Returns a list of all values in the datastore."""
+    return list(self.db.values())
+
+   
 
 
 
