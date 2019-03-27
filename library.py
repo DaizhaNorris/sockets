@@ -1,152 +1,61 @@
-"""A set of libraries that are useful to both the proxy and regular servers."""
-
-# This code uses Python 2.7. These imports make the 2.7 code feel a lot closer
-# to Python 3. (They're also good changes to the language!)
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-# THe Python socket API is based closely on the Berkeley sockets API which
-# was originally written for the C programming language.
-#
-# https://en.wikipedia.org/wiki/Berkeley_sockets
-#
-# The API is more flexible than you need, and it does some quirky things to
-# provide that flexibility. I recommend tutorials instead of complete
-# descriptions because those can skip the archaic bits. (The API was released
-# more than 35 years ago!)
 import socket
-import time
 
-# Read this many bytes at a time of a command. Each socket holds a buffer of
-# data that comes in. If the buffer fills up before you can read it then TCP
-# will slow down transmission so you can keep up. We expect that most commands
-# will be shorter than this.
-COMMAND_BUFFER_SIZE = 256
+BUFFER = 256
+SERVER_PORT = 7777
+PROXY_PORT = 8888
 
+def create_server(host, port):
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.bind((host, port))
+  s.listen(1)
+  print(f"Server initialized and running at {host}:{port}")
+  return s
 
-def CreateServerSocket(port):
-  """Creates a socket that listens on a specified port.
+def connect_server(s):
+  connection, (addr, port) = s.accept()
+  print(f"Received connection from: {addr}:{port}")
+  return connection, addr, port
 
-  Args:
-    port: int from 0 to 2^16. Low numbered ports have defined purposes. Almost
-        all predefined ports represent insecure protocols that have died out.
-  Returns:
-    An socket that implements TCP/IP.
-  """
-  server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  server.bind(('127.0.0.1', port))
-  server.listen()
-  print("Server socket created and listening on port", port)
-  return server
-
-
-def ConnectClientToServer(server_sock):
-  # Wait until a client connects and then get a socket that connects to the
-  # client.
-  client, address = server_sock.accept()
-  port = client.getsockname()[1]
-  return client, (address, port)
-  
-
-def CreateClientSocket(server_addr, port):
-  """Creates a socket that connects to a port on a server."""
-
-  #############################################
-  #TODO: Implement CreateClientSocket Function
-  #############################################
-  pass
-
-def ReadCommand(sock):
-  """Read a single command from a socket. The command must end in newline."""
-  command = ""
-  newline = "\n"
-  while newline not in command:
-    command += str(sock.recv(COMMAND_BUFFER_SIZE), 'utf-8')
-  
-  return command.splitlines()[0]
-  
-
-
-def ParseCommand(command):
-  """Parses a command and returns the command name, first arg, and remainder.
-
-  All commands are of the form:
-      COMMAND arg1 remaining text is called remainder
-  Spaces separate the sections, but the remainder can contain additional spaces.
-  The returned values are strings if the values are present or `None`. Trailing
-  whitespace is removed.
-
-  Args:
-    command: string command.
-  Returns:
-    command, arg1, remainder. Each of these can be None.
-  """
-  args = command.strip().split(' ')
+def parse_command(command):
+  args = command.decode().strip().split(' ')
   command = None
   if args:
     command = args[0]
-  arg1 = None
+  key = None
   if len(args) > 1:
-    arg1 = args[1]
-  remainder = None
+    key = args[1]
+  value = None
   if len(args) > 2:
-    remainder = ' '.join(args[2:])
-  return command, arg1, remainder
+    value = ' '.join(args[2:])
+  return command, key, value
 
 
-class KeyValueStore(object):
-  """A dictionary of strings keyed by strings.
-
-  The values can time out once they get sufficiently old. Otherwise, this
-  acts much like a dictionary.
-  """
-
-  def __init__(self):
-    self.db = {}
-
-  def GetValue(self, key, max_age_in_sec=None):
-    """Gets a cached value or `None`.
-
-    Values older than `max_age_in_sec` seconds are not returned.
-
-    Args:
-      key: string. The name of the key to get.
-      max_age_in_sec: float. Maximum time since the value was placed in the
-        KeyValueStore. If not specified then values do not time out.
-    Returns:
-      None or the value.
-    """
-    # Check if we've ever put something in the cache.
-
-    return self.db[key] if key in self.db else "Invalid key."
+def process_command(cmdline, database, proxy=False):
+  # Get individual parts from client command
+  command, key, value = parse_command(cmdline)
+  
+   # Execute the command based on the first word in the command line.
+  if command == 'PUT' and proxy:
+    forward_command(cmdline, SERVER_PORT)
+    return database.save(key, value) + "\n"
+  elif command == 'GET':
+    return database.retrieve(key) + "\n"
+  elif command == 'DUMP':
+    return database.dump() + "\n"
+  else:
+    return "Unknown command " + command
 
 
+def create_client(host, port):
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.connect((host, port))
+  return s
 
-  def StoreValue(self, key, value):
-    """Stores a value under a specific key.
-
-    Args:
-      key: string. The name of the value to store.
-      value: string. A value to store.
-    """
-    self.db[key] = value
-    
-
-  def Keys(self):
-    """Returns a list of all keys in the datastore."""
-    return list(self.db.keys())
-
-  def Values(self):
-    """Returns a list of all values in the datastore."""
-    return list(self.db.values())
-
-   
-
-
-
-
-
-
-
+def forward_command(command, port):
+  s = create_client('127.0.0.1', port)
+  s.sendall(command)
+  response = s.recv(BUFFER).decode() + "\n"
+  s.close()
+  return response
+  
 
