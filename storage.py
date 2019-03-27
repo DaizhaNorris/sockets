@@ -1,8 +1,10 @@
 import time
 import csv
 
+# Implements data store and constructors / mutators.
 class Storage(object):
   def __init__(self):
+    # Holds the data
     self.store = {}
 
   def retrieve(self, key):

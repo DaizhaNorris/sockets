@@ -8,6 +8,7 @@ SERVER_PORT = 7777
 
 
 def main():
+  # Spin up the server and database
   s = library.create_server('127.0.0.1', SERVER_PORT)
   database = Storage()
 
